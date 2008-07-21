@@ -1,0 +1,58 @@
+
+\documentclass{article}
+\usepackage{multicol}
+\usepackage{relsize}
+\usepackage[paper=letterpaper,left=1in,right=1in,top=1in,bottom=1in]{geometry}
+%\usepackage[a5paper]{geometry}
+
+\setlength{\parindent}{\bigskipamount}
+\setlength{\parskip}{\medskipamount}
+\newcommand{\entail}{\vdash}
+\newcommand{\fmap}{\mathop{\mathrm{fmap}}}
+
+\title{Deriving Functors from Typing Rules}
+\author{Samuel G\'elineau}
+\begin{document}
+\begin{center}
+{\larger[3] Deriving Functors from Typing Rules}\\
+\vspace{\bigskipamount}
+{\larger Samuel G\'elineau}\\
+McGill University
+\end{center}
+
+\begin{abstract}
+I've found a proof I really like and I want to talk about it.
+\end{abstract}
+
+\begin{multicols}{2}
+\section{Introduction}\label{intro}
+\vspace{-\parskip}\hspace*{\parindent}\texttt{map} is a very useful higher-order function which applies a transformation to every element of a list. Variants of this function exist for other data containers, such as trees, tuples, and dictionaries. In fact, variants exist for an even broader class of data types, called \emph{functors}, whose defining characteristic is precisely the fact that a variant of \texttt{map} exists for each functor.
+
+At this level of generalization, it is better to view \texttt{map} as a utility which can ``lift'' any function over single elements to a function over functors containing those elements. Lifted functions are not free to do whatever they want with the container; they may only apply the unlifted function to elements, and nothing else. For example, it would not be appropriate for list's \texttt{map} to drop the first few elements from the list, even thought such a twisted \texttt{map} would have the same type as the correct \texttt{map}.
+
+As section \ref{functor} explains, the precise rules that correct implementations of \texttt{map} need to follow is that when they lift functions into other functions, they must preserve identity and composition. Programming languages seldom check properties this complicated, so the programmer is usually made responsible for ensuring that his implementation follows those rules. Fortunately, implementing \texttt{map} for containers is very straightforward, and the obvious strategy is usually the correct one.
+
+Implementing \texttt{map} actually takes so little ingenuity that even a machine could do it. This is, in fact, what this paper suggests: mechanically turning a functor description into a provably correct implementation of its \texttt{map} function. Observing correct implementations of \texttt{map} for a few different containers makes it relatively obvious that the solution is to generate one clause per constructor, as in section \ref{simple}.
+
+In section \ref{complicated}, we will examine an approach which is a bit more involved. By first examining the typing rules which define those constructors, the obvious solution can be generalized to apply to types which do not have constructors \emph{per se}, \emph{e.g.} function types. Furthermore, if the typing rules are known to yield unique type derivations, then it will also be possible to use those derivations to prove the correctness of the generated implementations. The details of this transformation will be shown in section \ref{proof}.
+
+\section{Functors}\label{functor}
+Category theory and Haskell's prelude remind us that functors must satisfy the following rules.
+\begin{verbatim}
+fmap id  ==  id
+fmap (f . g)  ==  fmap f . fmap g
+\end{verbatim}
+
+\section{Algebraic Datatypes}\label{simple}
+Keep constructors as they are, recuring over arguments, possibly cheating for Const and Id.
+
+\section{Typing Rules}\label{complicated}
+Change ``$\Gamma \entail B : f~a$'' for ``$\fmap~f~B = B'$''
+
+\section{Correctness}\label{proof}
+$\Gamma \entail \fmap~g~x : f~a$
+
+\section{Conclusion}\label{conclusion}
+The proof looks great intuitively, but lots remains to be explained more formally. Future work: contrafunctors? endofunctors?
+\end{multicols}
+\end{document}
