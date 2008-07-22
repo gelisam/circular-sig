@@ -1,14 +1,18 @@
-
 \documentclass{article}
 \usepackage{multicol}
 \usepackage{relsize}
+\usepackage{amsmath}
 \usepackage[paper=letterpaper,left=1in,right=1in,top=1in,bottom=1in]{geometry}
 %\usepackage[a5paper]{geometry}
 
 \setlength{\parindent}{\bigskipamount}
 \setlength{\parskip}{\medskipamount}
 \newcommand{\entail}{\vdash}
+\newcommand{\map}{\ensuremath{\mathop{\mathtt{map}}}}
 \newcommand{\fmap}{\mathop{\mathrm{fmap}}}
+\newenvironment{indented}%
+{\vspace{-2.5\bigskipamount}\begin{quotation}\noindent}%
+{\end{quotation}}
 
 \title{Deriving Functors from Typing Rules}
 \author{Samuel G\'elineau}
@@ -20,39 +24,61 @@
 McGill University
 \end{center}
 
-\begin{abstract}
-I've found a proof I really like and I want to talk about it.
+\begin{abstract}\em
+Functors are type constructors equipped with a $\map$ function satisfying a few rules. Thanks to the incredible ingenuity of the people of this field, there is a very wild variety of different type constructors, many of which happen to be functors and for which we would like to derive appropriate $\map$ functions. While the diversity is impressive, every single type constructor should have been introduced along with a set of typing rules governing its use. The paper shows how to transform those typing rules into a $\map$ definition satisfying the required rules.
 \end{abstract}
 
 \begin{multicols}{2}
 \section{Introduction}\label{intro}
-\vspace{-\parskip}\hspace*{\parindent}\texttt{map} is a very useful higher-order function which applies a transformation to every element of a list. Variants of this function exist for other data containers, such as trees, tuples, and dictionaries. In fact, variants exist for an even broader class of data types, called \emph{functors}, whose defining characteristic is precisely the fact that a variant of \texttt{map} exists for each functor.
+\vspace{-\parskip}\hspace*{\parindent}$\map$ is a very useful higher-order function which applies a transformation to every element of a list. Variants of this function exist for other data containers, such as trees, tuples, and dictionaries. In fact, variants exist for an even broader class of data types, called \emph{functors}, whose defining characteristic is precisely the fact that a variant of $\map$ exists for each functor.
 
-At this level of generalization, it is better to view \texttt{map} as a utility which can ``lift'' any function over single elements to a function over functors containing those elements. Lifted functions are not free to do whatever they want with the container; they may only apply the unlifted function to elements, and nothing else. For example, it would not be appropriate for list's \texttt{map} to drop the first few elements from the list, even thought such a twisted \texttt{map} would have the same type as the correct \texttt{map}.
+At this level of generalization, it is better to view $\map$ as a utility which can ``lift'' any function over single elements to a function over functors containing those elements. Lifted functions are not free to do whatever they want with the container; they may only apply the unlifted function to elements, and nothing else. For example, it would not be appropriate for list's $\map$ to drop the first few elements from the list, even thought such a twisted $\map$ would have the same type as the correct $\map$.
 
-As section \ref{functor} explains, the precise rules that correct implementations of \texttt{map} need to follow is that when they lift functions into other functions, they must preserve identity and composition. Programming languages seldom check properties this complicated, so the programmer is usually made responsible for ensuring that his implementation follows those rules. Fortunately, implementing \texttt{map} for containers is very straightforward, and the obvious strategy is usually the correct one.
+As section \ref{functor} explains, the precise rules that correct implementations of $\map$ need to follow is that when they lift functions into other functions, they must preserve identity and composition. Programming languages seldom check properties this complicated, so the programmer is usually made responsible for ensuring that his implementation follows those rules. Fortunately, implementing $\map$ for containers is very straightforward, and the obvious strategy is usually the correct one.
 
-Implementing \texttt{map} actually takes so little ingenuity that even a machine could do it. This is, in fact, what this paper suggests: mechanically turning a functor description into a provably correct implementation of its \texttt{map} function. Observing correct implementations of \texttt{map} for a few different containers makes it relatively obvious that the solution is to generate one clause per constructor, as in section \ref{simple}.
+Implementing $\map$ actually takes so little ingenuity that even a machine could do it. This is, in fact, what this paper suggests: mechanically turning a functor description into a provably correct implementation of its $\map$ function. Observing correct implementations of $\map$ for a few different containers makes it relatively obvious that the solution is to generate one clause per constructor, as in section \ref{simple}.
 
-In section \ref{complicated}, we will examine an approach which is a bit more involved. By first examining the typing rules which define those constructors, the obvious solution can be generalized to apply to types which do not have constructors \emph{per se}, \emph{e.g.} function types. Furthermore, if the typing rules are known to yield unique type derivations, then it will also be possible to use those derivations to prove the correctness of the generated implementations. The details of this transformation will be shown in section \ref{proof}.
+In section \ref{complicated}, we will examine an approach which is a bit more involved. By first examining the typing rules which define those constructors, the obvious solution can be generalized to apply to types which do not have constructors \emph{per se}, such as function types. Furthermore, if the typing rules are known to yield unique type derivations, then it will also be possible to use those derivations to prove the correctness of the generated implementations. The details of this transformation will be shown in section \ref{proof}.
 
 \section{Functors}\label{functor}
-Category theory and Haskell's prelude remind us that functors must satisfy the following rules.
-\begin{verbatim}
-fmap id  ==  id
-fmap (f . g)  ==  fmap f . fmap g
-\end{verbatim}
+\vspace{-\parskip}\hspace*{\parindent}Functors are deeply related to categories, so please bear with this quick detour through category theory.
 
-\section{Algebraic Datatypes}\label{simple}
-Keep constructors as they are, recuring over arguments, possibly cheating for Const and Id.
+A category can be viewed as a directed graph whose vertices are called ``objects'' and whose edges are called ``morphisms''. Self-loops are allowed; in fact, every object $A$ is \emph{required} to have a looping identity morphism denoted $id_A$. The other structural requirement is that the graph must be closed over composition, that is, any walk of the form $A \stackrel{f}{\longrightarrow} B \stackrel{g}{\longrightarrow} C$ corresponds to a morphism $A \stackrel{f;g}{\longrightarrow} C$ which must also be part of the graph. It is perfectly acceptable for a single morphism to represent more than one composition; in fact, every morphism $A \stackrel{f}{\longrightarrow} B$ is required to represent at least two compositions, namely $(f;id_B)$ and $(id_A;f)$.
+
+Mathematicians really like structure-preserving transformations. Since identity and composition is the only structure which all categories have, sooner or later there had to be a mathematician\footnote{for a more accurate recollection of the development of category theory, see [?]} which would explore the realm of all functions preserving both of those properties. A \emph{functor} is such a function, say $F$, which maps the objects and morphisms of one category into the objects and morphisms of another, while preserving both identity and composition. This means it maps the object $A$ to some object $F(A)$, its identity morphism $id_A$ to the identity morphism $id_{F(A)}$, and the composed morphism $f;g$ to a morphism $F(f;g)$ representing the composition of $F(f)$ and $F(g)$. For short, $F$ is a function satisfying the following two rules.
+\begin{equation}\label{id}
+F(id_A) = id_{F(A)}
+\end{equation}
+\begin{equation}\label{composition}
+f;g = F(f);F(g)
+\end{equation}
+
+Note that in equations \ref{id} and \ref{composition}, $F$ is sometimes applied to objects, and sometimes to morphisms. To make things clearer, let's write $\map f$ instead of $F(f)$ when $f$ is a morphism. This $\map$ function maps morphisms of the form $A \stackrel{f}{\longrightarrow} B$ to morphisms of the form $F(A) \xrightarrow{~\map f~} F(B)$.
+
+Under certain conditions, a morphism such as $f$ can be interpreted as a \emph{function} from $A$ to $B$. Every other concept in category theory can be reinterpreted in this fashion (see [?] for a longer list). Objects correspond to types, obviously. Now that we have decided to apply $F$ exclusively on objects (since $\map$ takes care of the morphisms), it corresponds to a function from types to types; in other words, $F$ is a type constructor. $\map$, on the other hand, is a higher-order function with the following familiar type.
+\begin{equation}\label{map}
+\map :: (A \rightarrow B) \rightarrow (F(A) \rightarrow F(B))
+\end{equation}
+
+The type should be even more familiar in the special case where $F$ is the array type constructor. But even if this strange $\map$ imported from the world of category theory has the correct type to correspond to the familiar $\map$ function of our favourite functional programming language, how do we know for sure that it really is the same function?
+\begin{indented}
+\begin{verbatim}
+map :: (a -> b) -> [a] -> [b]
+map f [] = []
+map f (x:xs) = (f x):(map f xs)
+\end{verbatim}
+\end{indented}
+
+\section{Algebraic Data Types}\label{simple}
+Recur, possibly cheating for Id and Const.
 
 \section{Typing Rules}\label{complicated}
-Change ``$\Gamma \entail B : f~a$'' for ``$\fmap~f~B = B'$''
+\vspace{-\parskip}\hspace*{\parindent}Change ``$\Gamma \entail B : f~a$'' for ``$\fmap~f~B = B'$''
 
 \section{Correctness}\label{proof}
-$\Gamma \entail \fmap~g~x : f~a$
+\vspace{-\parskip}\hspace*{\parindent}$\Gamma \entail \fmap~g~x : f~a$
 
 \section{Conclusion}\label{conclusion}
-The proof looks great intuitively, but lots remains to be explained more formally. Future work: contrafunctors? endofunctors?
+\vspace{-\parskip}\hspace*{\parindent}The proof looks great intuitively, but lots remains to be explained more formally. Future work: contrafunctors? endofunctors?
 \end{multicols}
 \end{document}
