@@ -1,7 +1,7 @@
 all: paper.pdf
 .PHONY: all clean clobber
 
-%.pdf: %.tex
+%.pdf: %.tex paper.bib
 	pdflatex -interaction=nonstopmode $<
 	bibtex paper
 	pdflatex -interaction=nonstopmode $<

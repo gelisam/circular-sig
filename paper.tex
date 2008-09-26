@@ -33,9 +33,14 @@ To be written as the last step.
 \vspace{-\parskip}\hspace*{\parindent}
 Aspect-Oriented Programming denotes an umbrella of techniques aiming to separate previously-unmodularizable concerns from the rest of the code. The main approach is to inject function calls, through a process called \emph{weaving}, at the various places where they need to appear.
 
-This is by no means the only possible approach, even though it is definitely the technique which attracts the most attention. \cite{bar}, for example
+This is by no means the only possible approach, even though it is definitely the technique which attracts the most attention at the moment. As an alternative, the AHEAD model \cite{AHEAD} advocates the element-wise composition of programs, where corresponding elements are idenfied by name. Elements are then composed recursively or, for the methods at the leaves, using mixin-based inheritance \cite{mixin}. Some projects, such as CaesarJ \cite{CaesarJ}, allow the programmer to combine the weaving and element-wise approaches within the same program.
 
-\end{multicols}
-\bibliography{biblio}
+% order concerns require whole program analyses, which cannot be done
+% \cite{safeAHEAD} advocates it regardless
+% CLOS Method Combinations
+% order is sufficient! (with types)
+
 \bibliographystyle{plain}
+\bibliography{paper}
+\end{multicols}
 \end{document}
