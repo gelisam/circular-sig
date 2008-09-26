@@ -1,4 +1,4 @@
-\documentclass[proof]{article}
+\documentclass{article}
 \usepackage{multicol}
 \usepackage{relsize}
 \usepackage{color}
@@ -9,172 +9,33 @@
 
 \setlength{\parindent}{\bigskipamount}
 \setlength{\parskip}{\medskipamount}
-\definecolor{gray}{gray}{0.8}
-\newcommand{\entail}{\vdash}
-\newcommand{\map}{\ensuremath{\mathop{\mathtt{map}}}}
-\newcommand{\fmap}{\mathop{\mathrm{fmap}}}
-\newcommand{\ff}{\hat{f}}
 \newenvironment{indented}%
 {\vspace{-2\bigskipamount}\begin{quotation}\noindent}%
 {\end{quotation}}
 
-\title{Deriving Functors from Typing Rules}
+\title{Commutative Composition: A Conservative Approach to Aspect Weaving}
 \author{Samuel G\'elineau}
 \begin{document}
 \begin{center}
-{\larger[3] Deriving Functors from Typing Rules}\\
+{\larger[3] Commutative Composition:}\\
+{\larger[2] a conservative approach to aspect weaving}\\
 \vspace{\bigskipamount}
 {\larger Samuel G\'elineau}\\
 McGill University
 \end{center}
 
 \begin{abstract}\em
-Functors are type constructors equipped with a $\map$ function satisfying a few laws. Thanks to the incredible ingenuity of the people of this field, there is a very wild variety of different type constructors, many of which happen to be functors and for which we would like to derive appropriate $\map$ functions. While the diversity is impressive, every single type constructor should have been introduced along with a set of typing rules governing its use. This paper shows how to transform those typing rules into a $\map$ definition satisfying the required laws.
+To be written as the last step.
 \end{abstract}
 
 \begin{multicols}{2}
 \section{Introduction}\label{intro}
-\vspace{-\parskip}\hspace*{\parindent}$\map$ is a very useful higher-order function which applies a transformation to every element of a list. Variants of this function exist for other data containers, such as trees, tuples, and dictionaries. In fact, variants exist for an even broader class of data types, called \emph{functors}, whose defining characteristic is precisely the fact that a variant of $\map$ exists for each functor.
-
-At this level of generalization, it is better to view $\map$ as a utility which can ``lift'' any function over single elements to a function over functors containing those elements. Lifted functions are not free to do whatever they want with the container: they may only apply the unlifted function to elements, and nothing else. For example, it would not be appropriate for list's $\map$ to drop the first few elements from the list, even thought such a twisted $\map$ would have the same type as the correct $\map$.
-
-As section \ref{functor} explains, the precise rules that correct implementations of $\map$ need to follow is that when they lift functions into other functions, they must preserve identity and composition. Programming languages seldom check properties this complicated, so the programmer is usually made responsible for ensuring that his implementation follows those rules. Fortunately, implementing $\map$ for containers is very straightforward, and the obvious strategy is usually the correct one.
-
-Implementing $\map$ actually takes so little ingenuity that even a machine could do it. This is, in fact, what this paper suggests: mechanically turning a functor description into a provably correct implementation of its $\map$ function. Observing correct implementations of $\map$ for a few different containers makes it relatively obvious that the solution is to generate one clause per constructor, as in section \ref{simple}.
-
-In section \ref{complicated}, we will examine an approach which is a bit more involved. By first examining the typing rules which define those constructors, the obvious solution can be generalized to apply to types which do not have constructors \emph{per se}, such as function types. Furthermore, if the typing rules are known to yield unique type derivations, then it will also be possible to use those derivations to prove the correctness of the generated implementations. The details of this transformation will be shown in section \ref{proof}.
-
-\section{Functors}\label{functor}
-\vspace{-\parskip}\hspace*{\parindent}Functors are deeply related to categories, so please bear with this quick detour through category theory.
-
-A category can be viewed as a directed graph whose vertices are called ``objects'' and whose edges are called ``morphisms''. Self-loops are allowed; in fact, every object $A$ is \emph{required} to have a looping identity morphism denoted $id_A$. The other structural requirement is that the graph must be closed over composition, that is, any walk of the form $A \stackrel{f}{\longrightarrow} B \stackrel{g}{\longrightarrow} C$ corresponds to a morphism $A \stackrel{f;g}{\longrightarrow} C$ which must also be part of the graph. It is perfectly acceptable for a single morphism to represent more than one composition; in fact, every morphism $A \stackrel{f}{\longrightarrow} B$ is required to represent at least two compositions, namely $(f;id_B)$ and $(id_A;f)$.
-
-Mathematicians really like structure-preserving transformations. Since identity and composition is the only structure which all categories have, sooner or later there had to be a mathematician\footnote{for a more accurate recollection of the development of category theory, see [?]} which would explore the realm of all functions preserving both of those properties. A \emph{functor} is such a function, say $F$, which maps the objects and morphisms of one category into the objects and morphisms of another, while preserving both identity and composition. This means it maps the object $A$ to some object $F(A)$, its identity morphism $id_A$ to the identity morphism $id_{F(A)}$, and the composed morphism $f;g$ to a morphism $F(f;g)$ representing the composition of $F(f)$ and $F(g)$. To summarize, $F$ is a function satisfying the following two rules.
-\begin{equation}\label{id}
-F(id_A) = id_{F(A)}
-\end{equation}
-\begin{equation}\label{composition}
-f;g = F(f);F(g)
-\end{equation}
-
-Note that in equations \ref{id} and \ref{composition}, $F$ is sometimes applied to objects, and sometimes to morphisms. To make things clearer, let's write $\map f$ instead of $F(f)$ when $f$ is a morphism. This $\map$ function maps morphisms of the form $A \stackrel{f}{\longrightarrow} B$ to morphisms of the form $F(A) \xrightarrow{~\map f~} F(B)$.
-
-Under certain conditions, a morphism such as $f$ can be interpreted as a \emph{function} from $A$ to $B$. Every other concept in category theory can be reinterpreted in this fashion (see [?] for a longer list). Objects correspond to types, obviously. Now that we have decided to apply $F$ exclusively to objects (since $\map$ takes care of the morphisms), it corresponds to a function from types to types; in other words, $F$ is a type constructor. $\map$, on the other hand, is a higher-order function with the following familiar type.
-\begin{equation}\label{map}
-\map :: (A \rightarrow B) \rightarrow \textcolor{gray}{(}F(A) \rightarrow F(B)\textcolor{gray}{)}
-\end{equation}
-
-The type should be even more familiar in the special case where $F$ is the array type constructor. But even if this strange $\map$ imported from the world of category theory has the correct type to correspond to the familiar $\map$ function of your favourite functional programming language, how do we know for sure that it really is the same function?
-
-(Well, unless $\map$ is uniquely determined by $F$, we don't! todo: figure out if it is unique, and typeset the proof or the counterexample)
-% \begin{indented}
-% \begin{verbatim}
-% map :: (a -> b) -> [a] -> [b]
-% map f [] = []
-% map f (x:xs) = (f x):(map f xs)
-% \end{verbatim}
-% \end{indented}
-
-\section{Algebraic Data Types}\label{simple}
-Recur on all arguments, possibly cheating for Id. For example, each case in list's $\map$ reconstructs the list with the same constructor it is deconstructing, applying a version of $\fmap$ to all of the constructor arguments beforehand. The only exception is for the $\texttt{car}$ of the list, for which $\map$ must cheat by applying $f$ directly.
-\begin{indented}
-\begin{verbatim}
-map :: (a -> b) -> [a] -> [b]
-map f []        = []
-map f (car:cdr) = (f car):(fmap f cdr)
-\end{verbatim}
-\end{indented}
-
-\section{Typing Rules}\label{complicated}
-\vspace{-\parskip}\hspace*{\parindent}Within the typing rules defining terms of type $F(A)$, change every occurence of $\Gamma \entail t : T$ with an instance of the equation $\fmap^A_T~f~t = t'$. The funny sub- and superscripts are needed because the resulting equations could contain many occurences of $\fmap$, each of which could be for a different functor. They will be omitted when they are obvious from the context. Here, $A$ is intended to be a type variable which might occur in the type expression $T$. In the case that it does not occur, $\fmap^A_T f = id_T$. In the special case where $T=A$, we need to cut the recursion by asserting $\fmap^A_A f = f$, just like we did in section \ref{simple}.
-
-For example, the typing rules for lambda expressions can be translated as follows into a definition for $\map^B_{A \rightarrow B}$.
-\begin{subequations}
-\begin{gather}
-\infer{\Gamma \entail \lambda x. t : A \rightarrow B}{\Gamma, x : A \entail t : B}\\
-\infer{\fmap~f~(\lambda x. T~x) = \lambda x. T'~x}{T'~x = \fmap^B_B~f~(T~x)}\\
-\infer{\fmap~f~g~x = f~(g~x)}{\vphantom{|}}\\
-{\fmap}^B_{A \rightarrow B}~f~g = f;g
-\end{gather}
-\end{subequations}
-
-\section{Correctness}\label{proof}
 \vspace{-\parskip}\hspace*{\parindent}
-\begin{equation}\label{type_deriv}
-\infer{\Gamma \entail \fmap~g~x : F(B)}{\Gamma \entail g : A \rightarrow B & \Gamma \entail x : F(A)}
-\end{equation}
+Aspect-Oriented Programming denotes an umbrella of techniques aiming to separate previously-unmodularizable concerns from the rest of the code. The main approach is to inject function calls, through a process called \emph{weaving}, at the various places where they need to appear.
 
-According to the transformation described in section \ref{complicated}, we can turn this type derivation into the true equation \ref{true_eq}. Since the equation reduces to the computational equivalent of equation \ref{composition}, any functor for which the transformation is valid must preserve composition.
-\begin{subequations}
-\begin{gather}
-\label{true_eq}
-\infer{\fmap~f~(\fmap~g~x) = \fmap~g'~x'}{g' = \fmap_{A \rightarrow B}~f~g & x' = x}\\
-\infer{(\fmap f;\fmap g) x = \fmap~g'~x}{g' = f;g}\\
-\label{comp_preserv}
-\infer{\fmap f;\fmap g = \fmap~(f;g)}{\vphantom{|}}
-\end{gather}
-\end{subequations}
+This is by no means the only possible approach, even though it is definitely the technique which attracts the most attention. \cite{bar}, for example
 
-(todo: prove that identity is preserved too)
-
-\section{Conclusion}\label{conclusion}
-\vspace{-\parskip}\hspace*{\parindent}The proof looks great intuitively, but lots remains to be explained more formally. Future work: Contrafunctors? Endofunctors? How to interpret $\Gamma, x : T$?
 \end{multicols}
-
-\section{System F}
-The following attempts to derive the functors which System F's typing rules inspire.
-\begin{subequations}
-\begin{gather}
-\infer{\Delta;\Gamma\entail\lambda(x:A).g:A\rightarrow B}{
-  \Delta;\Gamma,x:A\entail g:B
-}\\
-\infer{\ff_{A\rightarrow B}~g = g'}{
-  g'~x' = \ff_B~(g~x) &
-  x = \ff'_A~x'
-}\\
-\ff_{A\rightarrow B}~g = \ff_B\cdot g\cdot\ff'_A
-\end{gather}
-\end{subequations}
-\begin{subequations}
-\begin{gather}
-\infer{\Delta;\Gamma\entail g~a:B}{
-  \Delta;\Gamma\entail g:A\rightarrow B &
-  \Delta;\Gamma\entail a:A
-}\\
-\infer{\ff_B~(g~a) = g'~a'}{
-  g' = \ff_{A\rightarrow B}~g &
-  a' = \ff_A~a
-}\\
-\ff_B~(g~a) = (\ff_{A\rightarrow B}~g)~(\ff_A~a)
-\end{gather}
-\end{subequations}
-Consider the case when $\tau_1$ doesn't occur in $\tau$.
-\begin{subequations}
-\begin{gather}
-\infer{\Delta;\Gamma\entail\Lambda\alpha.t:\forall\alpha.\tau}{
-  \Delta,\alpha;\Gamma\entail t : \tau
-}\\
-\infer{\fmap~f~(\Lambda\alpha.T~\alpha) = \Lambda\alpha.(T'~\alpha)}{
-  T'~\alpha = \fmap^{\tau}_{\tau}~f~(T~\alpha)
-}\\
-\fmap~f~(\Lambda\alpha.T~\alpha) = \Lambda\alpha.f~(T~\alpha)
-\\
-\fmap^{\tau}_{\forall\alpha.\tau}~f~g~\alpha = f~(g~\alpha)
-\end{gather}
-\end{subequations}
-What happens when $\tau_1$ does occur in $\tau$? Let's consider a specific case, $\tau = \alpha\rightarrow\tau_1$.
-\begin{subequations}
-\begin{gather}
-\infer{\Delta;\Gamma\entail\Lambda\alpha.t:\forall\alpha.\alpha\rightarrow\tau_1}{
-  \Delta,\alpha;\Gamma\entail t : \alpha\rightarrow\tau_1
-}\\
-\infer{\fmap~f~(\Lambda\alpha.T \alpha) = \Lambda\alpha.(T'~\alpha)}{
-  T' \alpha = \fmap^{\tau_1}_{\alpha\rightarrow\tau_1}~f~(T~\alpha)
-}\\
-\fmap~f~(\Lambda\alpha.T \alpha) = \Lambda\alpha.f \cdot (T~\alpha)
-\\
-\fmap^{\tau_1}_{\forall\alpha.\alpha\rightarrow\tau_1}~f~g~\alpha~x = f~(g~\alpha~x)
-\end{gather}
-\end{subequations}
-So it turns out that the expression for $\tau$ does matter.
+\bibliography{biblio}
+\bibliographystyle{plain}
 \end{document}
