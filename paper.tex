@@ -36,7 +36,7 @@ The composition strategy I intend to develop steers away from the standard weavi
 \subsection{Example}\label{intro-example}\vspace{-\parskip}\hspace*{\parindent}
 Suppose we are writing a simple web application using CGI \cite{CGIbook, CGIeasy}, say, to let users add comments to a public page. There are several security concerns which could have an incidence on the application's behaviour, but because they are not directly related to the application's business logic, the proponents of aspect-orientation would exhort us to keep the code for these concerns completely separate.
 
-The concerns which I do consider to be part of the business logic are: parsing form parameters, manipulating the database, and generating HTML. The following pseudo-code illustrates one way of structuring those base concerns. Because current aspect-oriented technologies work better at the method call level, the code is artificially over-subdivided into very small methods which are only called once.
+The concerns which I do consider to be part of the business logic are: parsing form parameters, manipulating the database, and generating HTML. The following pseudo-code illustrates one way of structuring those base concerns. Because current aspect-oriented technologies work better at the granularity of methods, the code is artificially over-subdivided into very small methods which are only called once.
 
 {\smaller
 \begin{verbatim}
