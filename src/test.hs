@@ -1,25 +1,30 @@
 {-# LANGUAGE UnicodeSyntax #-}
 
+infixl  6 :⋅:
+infixr  6 :→:
+
 data Name
   = Const String
   | Bound Int
   | Unquoted Int
   deriving (Show, Eq)
 
-data Inferable_Term
-  = Ann Checkable_Term Type
+-- inferable term
+data TermI
+  = Ann TermC Type
   | Ind Int
   | Nam Name
-  | Inferable_Term :⋅: Checkable_Term
+  | TermI :⋅: TermC
   deriving (Show, Eq)
 
-data Checkable_Term
-  = Inf Inferable_Term
-  | Lam Checkable_Term
+-- checkable term
+data TermC
+  = Inf TermI
+  | Lam TermC
   deriving (Show, Eq)
 
 data Type
-  = TPar Name
+  = TNam Name
   | Type :→: Type
   deriving (Show, Eq)
 
@@ -31,13 +36,32 @@ data Neutral
   = NVar Name
   | NApp Neutral Value
 
+instance Show Value where
+  showsPrec p (VLam _) = ('l':)
+                       . ('a':)
+                       . ('m':)
+                       . ('(':)
+                       . ('.':)
+                       . ('.':)
+                       . ('.':)
+                       . (')':)
+  showsPrec p (VNeu x) = showsPrec p x
+
+instance Show Neutral where
+  showsPrec p (NVar x) = showsPrec p x
+  showsPrec p (NApp x y) = ('(':)
+                         . showsPrec p x
+                         . (',':)
+                         . showsPrec p y
+                         . (')':)
+
 vvar ∷ Name → Value
 vvar n = VNeu (NVar n)
 
 
 -- substituting i for the name (const s)
-deBruijnC ∷ Int → String → Checkable_Term → Checkable_Term
-deBruijnI ∷ Int → String → Inferable_Term → Inferable_Term
+deBruijnC ∷ Int → String → TermC → TermC
+deBruijnI ∷ Int → String → TermI → TermI
 deBruijnC i s (Inf x)   = Inf $ deBruijnI i     s x
 deBruijnC i s (Lam x)   = Lam $ deBruijnC (i+1) s x
 deBruijnI i s (Ann x t) = Ann (deBruijnC i s x) t
@@ -47,17 +71,48 @@ deBruijnI i s (Nam (Const x)) | s == x
 deBruijnI i s (Nam x)   = Nam x
 deBruijnI i s (x :⋅: y) = deBruijnI i s x :⋅: deBruijnC i s y
 
-lam ∷ String → Checkable_Term → Checkable_Term
+lam ∷ String → TermC → TermC
 lam s x = Lam $ deBruijnC 0 s x
 
-varC ∷ String → Checkable_Term
-varI ∷ String → Inferable_Term
+varC ∷ String → TermC
+varI ∷ String → TermI
+varT ∷ String → Type
 varC n = Inf $ varI n
 varI n = Nam $ Const n
+varT n = TNam $ Const n
 
-k ∷ Checkable_Term
-k = lam "x" $ lam "y" $ varC "x"
+kC ∷ TermC
+kI ∷ TermI
+kC = lam "x" $ lam "y" $ varC "x"
+kI = Ann kC $ varT "a" :→: varT "b"
+
+
+evalC ∷ [Value] → TermC → Value
+evalI ∷ [Value] → TermI → Value
+evalC env (Inf x)   = evalI env x
+evalC env (Lam x)   = VLam $ \v → evalC (v : env) x
+evalI env (Ann x t) = evalC env x
+evalI env (Ind x)   = env !! x
+evalI env (Nam x)   = vvar x
+evalI env (x :⋅: y) = f e where
+  VLam f = evalI env x
+  e      = evalC env y
+
+
+data Kind
+  = Star
+  deriving (Show, Eq)
+
+data Info
+  = HasKind Kind
+  | HasType Type
+  deriving (Show, Eq)
+
+type Context = [(Name, Info)]
+
 
 main = do
-  putStrLn $ show k
+  putStrLn $ show kC
+  putStrLn $ show $ evalC [] $ Inf $
+    kI :⋅: varC "u" :⋅: varC "v"
   putStrLn "typechecks."
