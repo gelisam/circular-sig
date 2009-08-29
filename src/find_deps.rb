@@ -1,5 +1,5 @@
 #!/usr/bin/ruby
-Dir["src/**/*.hs", "tests/**/*.hs"].each {|filename|
+Dir["src/**/*.hs"].each {|filename|
   dependencies = File.readlines(filename).grep(/^import /).map {|line|
     "src/#{line.chomp.split(/[( )]/)[1].gsub(".", "/")}.hs"
   }.select {|f|
