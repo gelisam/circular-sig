@@ -94,10 +94,11 @@ evalC env (Lam x)   = VLam $ \v → evalC (v : env) x
 evalI env (Ann x t) = evalC env x
 evalI env (Ind x)   = env !! x
 evalI env (Nam x)   = vvar x
-evalI env (x :⋅: y) = f e where
-  VLam f = evalI env x
-  e      = evalC env y
+evalI env (x :⋅: y) = vapp (evalI env x) (evalC env y)
 
+vapp ∷ Value → Value → Value
+vapp (VLam f) e = f e
+vapp (VNeu f) e = VNeu (NApp f e)
 
 data Kind
   = Star
