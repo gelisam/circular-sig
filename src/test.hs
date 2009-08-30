@@ -3,7 +3,7 @@ import Prelude hiding (pi)
 import Control.Monad.Error
 
 
-infixl  6 :⋅:
+infixl  7 :⋅:
 infixr  6 →→
 
 data Name
@@ -239,71 +239,59 @@ requote i (Unquoted k) = Ind $ i - k - 1
 requote i x            = Nam x
 
 
-iC = lam "x" $ varC "x"
-iT = varC "a" →→ varC "a"
-iI = Ann iC iT
-iA = iI :⋅: varC "y"
-iK = [(Const "a", VStar)]
-iKT = iK
-   ++ [(Const "y", varV "a")]
-
-kC = lam "x" $ lam "y" $ varC "x"
-kT = varC "a" →→ varC "b" →→ varC "a"
-kI = Ann kC kT
-kA = kI :⋅: varC "u" :⋅: varC "v"
-kK = [(Const "a", VStar)
-     ,(Const "b", VStar)]
-kKT = kK
-   ++ [(Const "u", varV "a")
-      ,(Const "v", varV "b")]
-
-iiC = lam "a" $ lam "x" $ varC "x"
-iiT = pi "a" star $ varC "a" →→ varC "a"
-iiI = Ann iiC iiT
-iiA = iiI :⋅: varC "Nat" :⋅: varC "zero"
-iiK = [(Const "Nat", VStar)]
-iiKT = iiK
-    ++ [(Const "zero", varV "Nat")]
-
-kkC = lam "a" $ lam "b" $ lam "x" $ lam "y" $ varC "x"
-kkT = pi "a" star $ pi "b" star $ varC "a" →→ varC "b" →→ varC "a"
-kkI = Ann kkC kkT
-kkA = kkI :⋅: varC "Nat"  :⋅: varC "Bool"
-          :⋅: varC "zero" :⋅: varC "false"
-kkK = [(Const "Nat",  VStar)
-      ,(Const "Bool", VStar)]
-kkKT = kkK
-   ++ [(Const "zero",  varV "Nat")
-      ,(Const "false", varV "Bool")]
+cyclic_check ∷ [(String, TermC)] → IO ()
+cyclic_check xs = mapM_ check xs where
+  c = map infoize xs
+  infoize (s, t) = (Const s, evalC [] t)
+  check (s, x) = do
+    putStr s
+    putStr ": "
+    case chk_type c x VStar of
+      Left err → putStrLn err
+      Right () → putStrLn "OK"
 
 
-main = do
-  putStrLn $ show iC
-  putStrLn $ show kC
-  putStrLn $ show iiC
-  putStrLn $ show kkC
-  putStrLn $ show $ evalC [] $ Inf iA
-  putStrLn $ show $ evalC [] $ Inf kA
-  putStrLn $ show $ evalC [] $ Inf iiA
-  putStrLn $ show $ evalC [] $ Inf kkA
-  putStrLn $ show $ chk_type iK  iT  VStar
-  putStrLn $ show $ chk_type kK  kT  VStar
-  putStrLn $ show $ chk_type iiK iiT VStar
-  putStrLn $ show $ chk_type kkK kkT VStar
-  putStrLn $ show $ chk_type iKT  (Inf iA)  (varV "a")
-  putStrLn $ show $ chk_type kKT  (Inf kA)  (varV "a")
-  putStrLn $ show $ chk_type iiKT (Inf iiA) (varV "Nat")
-  putStrLn $ show $ chk_type kkKT (Inf kkA) (varV "Nat")
-  putStrLn $ show $ inf_type iKT  iA
-  putStrLn $ show $ inf_type kKT  kA
-  putStrLn $ show $ inf_type iiKT iiA
-  putStrLn $ show $ inf_type kkKT kkA
-  putStrLn $ show $ quote $ evalC [] $ Inf iA
-  putStrLn $ show $ quote $ evalC [] $ Inf kA
-  putStrLn $ show $ quote $ evalC [] $ Inf iiA
-  putStrLn $ show $ quote $ evalC [] $ Inf kkA
-  putStrLn $ show $ quote $ evalC [] iC
-  putStrLn $ show $ quote $ evalC [] kC
-  putStrLn $ show $ quote $ evalC [] iiC
-  putStrLn $ show $ quote $ evalC [] kkC
-  putStrLn "typechecks."
+natP = varC "ℕ⁺"
+one  = varC "1"
+d    = varC "d"
+ls   = varC "ls"
+len  = varC "len"
+suc       x     = Inf $ varI "1+"        :⋅: x
+list      x     = Inf $ varI "list"      :⋅: x
+cons      x y z = Inf $ varI "cons"      :⋅: x :⋅: y :⋅: z
+singleton x     = Inf $ varI "singleton" :⋅: x
+matrix    x y   = Inf $ varI "matrix"    :⋅: x :⋅: y
+
+main = cyclic_check
+  [("ℕ⁺", star)
+  ,("1" , natP)
+  ,("1+", natP →→ natP)
+  
+  ,("list"     , natP →→ star)
+  ,("singleton", natP
+              →→ list one)
+  ,("cons"     , pi "d" natP
+               $ natP
+              →→ list d
+              →→ list (suc d))
+  
+  ,("matrix", pi "d" natP
+            $ list d
+           →→ star)
+  ,("atom"  , natP
+           →→ matrix one (singleton one))
+  ,("cons1" , pi "len" natP
+            $ matrix one (singleton one)
+           →→ matrix one (singleton len)
+           →→ matrix one (singleton (suc len)))
+  ,("cons+" , pi "len" natP
+            $ pi "d"   natP
+            $ pi "ls"  (list d)
+            $ matrix (suc d) (cons d one ls)
+           →→ matrix (suc d) (cons d len ls)
+           →→ matrix (suc d) (cons d (suc len) ls))
+  ,("bump"  , pi "d"  natP
+            $ pi "ls" (list d)
+            $ matrix d ls
+           →→ matrix (suc d) (cons d one ls))
+  ]

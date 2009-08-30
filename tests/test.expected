@@ -1,29 +1,11 @@
-Lam (Inf (Ind 0))
-Lam (Lam (Inf (Ind 1)))
-Lam (Lam (Inf (Ind 0)))
-Lam (Lam (Lam (Lam (Inf (Ind 1)))))
-Const "y"
-Const "u"
-Const "zero"
-Const "zero"
-Right ()
-Right ()
-Right ()
-Right ()
-Right ()
-Right ()
-Right ()
-Right ()
-Right (Const "a")
-Right (Const "a")
-Right (Const "Nat")
-Right (Const "Nat")
-Inf (Nam (Const "y"))
-Inf (Nam (Const "u"))
-Inf (Nam (Const "zero"))
-Inf (Nam (Const "zero"))
-Lam (Inf (Ind 0))
-Lam (Lam (Inf (Ind 1)))
-Lam (Lam (Inf (Ind 0)))
-Lam (Lam (Lam (Lam (Inf (Ind 1)))))
-typechecks.
+z: OK
+1: OK
+1+: OK
+list: OK
+singleton: OK
+cons: OK
+matrix: OK
+atom: OK
+cons1: OK
+cons+: OK
+bump: OK
