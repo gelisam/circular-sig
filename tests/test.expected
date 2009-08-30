@@ -1,8 +1,15 @@
+Lam (Inf (Ind 0))
 Lam (Lam (Inf (Ind 1)))
+Const "y"
 Const "u"
 Right ()
 Right ()
+Right ()
+Right ()
 Right (TNam (Const "a"))
+Right (TNam (Const "a"))
+Inf (Nam (Const "y"))
 Inf (Nam (Const "u"))
+Lam (Inf (Ind 0))
 Lam (Lam (Inf (Ind 1)))
 typechecks.

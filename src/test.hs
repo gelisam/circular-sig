@@ -93,15 +93,6 @@ varC n = Inf $ varI n
 varI n = Nam $ Const n
 varT n = TNam $ Const n
 
-kC ∷ TermC
-kT ∷ Type
-kI ∷ TermI
-kA ∷ TermI
-kC = lam "x" $ lam "y" $ varC "x"
-kT = varT "a" :→: varT "b" :→: varT "a"
-kI = Ann kC kT
-kA = kI :⋅: varC "u" :⋅: varC "v"
-
 
 evalC ∷ [Value] → TermC → Value
 evalI ∷ [Value] → TermI → Value
@@ -193,6 +184,7 @@ inf_type c (x :⋅: y) = do
                 ++ show t'
                 ++ " applied to an argument"
 
+
 quote  ∷       Value → TermC
 quoteV ∷ Int → Value → TermC
 quoteN ∷ Int → Neutral → TermI
@@ -207,22 +199,39 @@ requote i (Unquoted k) = Ind $ i - k - 1
 requote i x            = Nam x
 
 
+iC = lam "x" $ varC "x"
+iT = varT "a" :→: varT "a"
+iI = Ann iC iT
+iA = iI :⋅: varC "y"
+iK = [(Const "a", HasKind Star)]
+iKT = iK
+   ++ [(Const "y", HasType $ varT "a")]
+
+
+kC = lam "x" $ lam "y" $ varC "x"
+kT = varT "a" :→: varT "b" :→: varT "a"
+kI = Ann kC kT
+kA = kI :⋅: varC "u" :⋅: varC "v"
+kK = [(Const "a", HasKind Star)
+     ,(Const "b", HasKind Star)]
+kKT = kK
+   ++ [(Const "u", HasType $ varT "a")
+      ,(Const "v", HasType $ varT "b")]
+
+
 main = do
+  putStrLn $ show iC
   putStrLn $ show kC
+  putStrLn $ show $ evalC [] $ Inf iA
   putStrLn $ show $ evalC [] $ Inf kA
-  putStrLn $ show $ chk_kind [(Const "a", HasKind Star)
-                             ,(Const "b", HasKind Star)]
-                             kT Star
-  putStrLn $ show $ chk_type [(Const "a", HasKind Star)
-                             ,(Const "b", HasKind Star)
-                             ,(Const "u", HasType $ varT "a")
-                             ,(Const "v", HasType $ varT "b")]
-                             (Inf kA) (varT "a")
-  putStrLn $ show $ inf_type [(Const "a", HasKind Star)
-                             ,(Const "b", HasKind Star)
-                             ,(Const "u", HasType $ varT "a")
-                             ,(Const "v", HasType $ varT "b")]
-                             kA
+  putStrLn $ show $ chk_kind iK iT Star
+  putStrLn $ show $ chk_kind kK kT Star
+  putStrLn $ show $ chk_type iKT (Inf iA) (varT "a")
+  putStrLn $ show $ chk_type kKT (Inf kA) (varT "a")
+  putStrLn $ show $ inf_type iKT iA
+  putStrLn $ show $ inf_type kKT kA
+  putStrLn $ show $ quote $ evalC [] $ Inf iA
   putStrLn $ show $ quote $ evalC [] $ Inf kA
+  putStrLn $ show $ quote $ evalC [] iC
   putStrLn $ show $ quote $ evalC [] kC
   putStrLn "typechecks."
