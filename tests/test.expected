@@ -3,4 +3,6 @@ Const "u"
 Right ()
 Right ()
 Right (TNam (Const "a"))
+Inf (Nam (Const "u"))
+Lam (Lam (Inf (Ind 1)))
 typechecks.

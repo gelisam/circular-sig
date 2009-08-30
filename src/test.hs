@@ -193,6 +193,19 @@ inf_type c (x :⋅: y) = do
                 ++ show t'
                 ++ " applied to an argument"
 
+quote  ∷       Value → TermC
+quoteV ∷ Int → Value → TermC
+quoteN ∷ Int → Neutral → TermI
+quote v = quoteV 0 v
+quoteV i (VLam f)   = Lam $ quoteV (i+1) $ f $ vvar $ Unquoted i
+quoteV i (VNeu x)   = Inf $ quoteN i x
+quoteN i (NVar x)   = requote i x
+quoteN i (NApp x y) = quoteN i x :⋅: quoteV i y
+
+requote ∷ Int → Name → TermI
+requote i (Unquoted k) = Ind $ i - k - 1
+requote i x            = Nam x
+
 
 main = do
   putStrLn $ show kC
@@ -210,4 +223,6 @@ main = do
                              ,(Const "u", HasType $ varT "a")
                              ,(Const "v", HasType $ varT "b")]
                              kA
+  putStrLn $ show $ quote $ evalC [] $ Inf kA
+  putStrLn $ show $ quote $ evalC [] kC
   putStrLn "typechecks."
