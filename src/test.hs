@@ -154,17 +154,21 @@ chk_type c (Lam x) (VPi t f) = do
   let x'   = nameC name 0 x
   let t2'  = f $ vvar name
   chk_type c' x' t2'
-chk_type c (Lam x) (VNeu (NVar t)) =
+chk_type c (Lam x) VStar =
   throwError $ "term "
             ++ show (Lam x)
-            ++ " has an pi type, not "
-            ++ show t
-chk_type c (Inf x) (VPi t1 t2) =
+            ++ " has a pi type, not "
+            ++ show (quote VStar)
+chk_type c (Lam x) (VLam t) =
   throwError $ "term "
-            ++ show x
-            ++ " is supposed to have type "
-            ++ show (VPi t1 t2)
-            ++ " but it is not a lambda"
+            ++ show (Lam x)
+            ++ " has a pi type, not "
+            ++ show (quote (VLam t))
+chk_type c (Lam x) (VNeu t) =
+  throwError $ "term "
+            ++ show (Lam x)
+            ++ " has a pi type, not "
+            ++ show (quote (VNeu t))
 
 inf_type ∷ Context → TermI → Result Type
 inf_type c (Ann x t) = do
