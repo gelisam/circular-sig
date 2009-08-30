@@ -284,7 +284,7 @@ pi' a b c d = Inf $ varI "pi"  :⋅: a :⋅: b :⋅: c :⋅: d
 t2  a       = Inf $ varI "t2"  :⋅: a
 
 tp        = uni (suc z)
-exp_uni x = exp (suc x) (uni (suc x))
+exp_uni x = exp (suc x) (uni x)
 
 
 main = do
@@ -331,7 +331,7 @@ main = do
            $ exp_uni x
           →→ star)
     ,("uni", pi "x" nat
-           $ exp_uni x)
+           $ exp_uni (suc x))
     ,("pi" , pi "n1" nat
            $ pi "n2" nat
            $ pi "t1" (exp_uni n1)
