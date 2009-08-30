@@ -6,3 +6,12 @@ atom: OK
 cons1: OK
 cons+: OK
 bump: OK
+ℕ: OK
+0: OK
+1+: OK
+max: OK
+exp: OK
+uni: OK
+pi: OK
+lam: OK
+app: OK

@@ -1,5 +1,5 @@
 {-# LANGUAGE UnicodeSyntax #-}
-import Prelude hiding (putStr, putStrLn, pi)
+import Prelude hiding (putStr, putStrLn, pi, exp, max)
 import Control.Monad.Error
 import System.IO.UTF8
 
@@ -257,47 +257,103 @@ one  = varC "1"
 d    = varC "d"
 ls   = varC "ls"
 len  = varC "len"
-suc    x                  = Inf $ varI "1+"     :⋅: x
-matrix d ls               = Inf $ varI "matrix" :⋅: d :⋅: ls
-atom   x                  = Inf $ varI "atom"   :⋅: x
-cons1  len      head tail = Inf $ varI "cons1"  :⋅: len :⋅:              head :⋅: tail
-consP  len d ls head tail = Inf $ varI "consP"  :⋅: len :⋅: d :⋅: ls :⋅: head :⋅: tail
-bump   d ls x             = Inf $ varI "bump"   :⋅:         d :⋅: ls :⋅: x
+suc    a         = Inf $ varI "1+"     :⋅: a
+matrix a b       = Inf $ varI "matrix" :⋅: a :⋅: b
+atom   a         = Inf $ varI "atom"   :⋅: a
+cons1  a b c     = Inf $ varI "cons1"  :⋅: a :⋅: b :⋅: c
+consP  a b c d e = Inf $ varI "consP"  :⋅: a :⋅: b :⋅: c :⋅: d :⋅: e
+bump   a b c     = Inf $ varI "bump"   :⋅: a :⋅: b :⋅: c
 
 list d      = matrix one (singleton d)
 singleton x = atom x
 cons d x xs = cons1 d (atom x) xs
 
-main = cyclic_check
-  [("ℕ⁺", star)
-  ,("1" , natP)
-  ,("1+", natP →→ natP)
-  
-  -- ,("list"     , natP →→ star)
-  -- ,("singleton", natP
-  --             →→ list one)
-  -- ,("cons"     , pi "d" natP
-  --              $ natP
-  --             →→ list d
-  --             →→ list (suc d))
-  
-  ,("matrix", pi "d" natP
-            $ list d
-           →→ star)
-  ,("atom"  , natP
-           →→ matrix one (singleton one))
-  ,("cons1" , pi "len" natP
-            $ matrix one (singleton one)
-           →→ matrix one (singleton len)
-           →→ matrix one (singleton (suc len)))
-  ,("cons+" , pi "len" natP
-            $ pi "d"   natP
-            $ pi "ls"  (list d)
-            $ matrix (suc d) (cons d one ls)
-           →→ matrix (suc d) (cons d len ls)
-           →→ matrix (suc d) (cons d (suc len) ls))
-  ,("bump"  , pi "d"  natP
-            $ pi "ls" (list d)
-            $ matrix d ls
-           →→ matrix (suc d) (cons d one ls))
-  ]
+
+nat = varC "ℕ"
+z   = varC "0"
+x   = varC "x"
+y   = varC "y"
+n1  = varC "n1"
+n2  = varC "n2"
+t1  = varC "t1"
+
+max a b     = Inf $ varI "max" :⋅: a :⋅: b
+exp a b     = Inf $ varI "exp" :⋅: a :⋅: b
+uni a       = Inf $ varI "uni" :⋅: a
+pi' a b c d = Inf $ varI "pi"  :⋅: a :⋅: b :⋅: c :⋅: d
+t2  a       = Inf $ varI "t2"  :⋅: a
+
+tp        = uni (suc z)
+exp_uni x = exp (suc x) (uni (suc x))
+
+
+main = do
+  cyclic_check
+    [("ℕ⁺", star)
+    ,("1" , natP)
+    ,("1+", natP →→ natP)
+    
+    -- ,("list"     , natP →→ star)
+    -- ,("singleton", natP
+    --             →→ list one)
+    -- ,("cons"     , pi "d" natP
+    --              $ natP
+    --             →→ list d
+    --             →→ list (suc d))
+    
+    ,("matrix", pi "d" natP
+              $ list d
+             →→ star)
+    ,("atom"  , natP
+             →→ matrix one (singleton one))
+    ,("cons1" , pi "len" natP
+              $ matrix one (singleton one)
+             →→ matrix one (singleton len)
+             →→ matrix one (singleton (suc len)))
+    ,("cons+" , pi "len" natP
+              $ pi "d"   natP
+              $ pi "ls"  (list d)
+              $ matrix (suc d) (cons d one ls)
+             →→ matrix (suc d) (cons d len ls)
+             →→ matrix (suc d) (cons d (suc len) ls))
+    ,("bump"  , pi "d"  natP
+              $ pi "ls" (list d)
+              $ matrix d ls
+             →→ matrix (suc d) (cons d one ls))
+    ]
+  cyclic_check
+    [("ℕ"  , star)
+    ,("0"  , nat)
+    ,("1+" , nat →→ nat)
+    ,("max", nat →→ nat →→ nat)
+    
+    ,("exp", pi "x" nat
+           $ exp_uni x
+          →→ star)
+    ,("uni", pi "x" nat
+           $ exp_uni x)
+    ,("pi" , pi "n1" nat
+           $ pi "n2" nat
+           $ pi "t1" (exp_uni n1)
+           $ pi "t2" (exp n1 t1
+                   →→ exp_uni n2)
+           $ exp_uni (max n1 n2))
+    ,("lam", pi "n1" nat
+           $ pi "n2" nat
+           $ pi "t1" (exp_uni n1)
+           $ pi "t2" (exp n1 t1
+                   →→ exp_uni n2)
+           $ (pi "x" (exp n1 t1)
+                     (exp n2 (t2 x)))
+          →→ exp (max n1 n2)
+                 (pi' n1 n2 t1 (varC "t2")))
+    ,("app", pi "n1" nat
+           $ pi "n2" nat
+           $ pi "t1" (exp_uni n1)
+           $ pi "t2" (exp n1 t1
+                   →→ exp_uni n2)
+           $ pi "x" (exp (max n1 n2)
+                         (pi' n1 n2 t1 (varC "t2")))
+           $ pi "y" (exp n1 t1)
+           $ exp n2 (t2 y))
+    ]
