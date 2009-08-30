@@ -1,3 +1,6 @@
 Lam (Lam (Inf (Ind 1)))
 Const "u"
+Right ()
+Right ()
+Right (TNam (Const "a"))
 typechecks.
