@@ -247,7 +247,6 @@ iK = [(Const "a", VStar)]
 iKT = iK
    ++ [(Const "y", varV "a")]
 
-
 kC = lam "x" $ lam "y" $ varC "x"
 kT = varC "a" →→ varC "b" →→ varC "a"
 kI = Ann kC kT
@@ -258,20 +257,53 @@ kKT = kK
    ++ [(Const "u", varV "a")
       ,(Const "v", varV "b")]
 
+iiC = lam "a" $ lam "x" $ varC "x"
+iiT = pi "a" star $ varC "a" →→ varC "a"
+iiI = Ann iiC iiT
+iiA = iiI :⋅: varC "Nat" :⋅: varC "zero"
+iiK = [(Const "Nat", VStar)]
+iiKT = iiK
+    ++ [(Const "zero", varV "Nat")]
+
+kkC = lam "a" $ lam "b" $ lam "x" $ lam "y" $ varC "x"
+kkT = pi "a" star $ pi "b" star $ varC "a" →→ varC "b" →→ varC "a"
+kkI = Ann kkC kkT
+kkA = kkI :⋅: varC "Nat"  :⋅: varC "Bool"
+          :⋅: varC "zero" :⋅: varC "false"
+kkK = [(Const "Nat",  VStar)
+      ,(Const "Bool", VStar)]
+kkKT = kkK
+   ++ [(Const "zero",  varV "Nat")
+      ,(Const "false", varV "Bool")]
+
 
 main = do
   putStrLn $ show iC
   putStrLn $ show kC
+  putStrLn $ show iiC
+  putStrLn $ show kkC
   putStrLn $ show $ evalC [] $ Inf iA
   putStrLn $ show $ evalC [] $ Inf kA
-  putStrLn $ show $ chk_type iK iT VStar
-  putStrLn $ show $ chk_type kK kT VStar
-  putStrLn $ show $ chk_type iKT (Inf iA) (varV "a")
-  putStrLn $ show $ chk_type kKT (Inf kA) (varV "a")
-  putStrLn $ show $ inf_type iKT iA
-  putStrLn $ show $ inf_type kKT kA
+  putStrLn $ show $ evalC [] $ Inf iiA
+  putStrLn $ show $ evalC [] $ Inf kkA
+  putStrLn $ show $ chk_type iK  iT  VStar
+  putStrLn $ show $ chk_type kK  kT  VStar
+  putStrLn $ show $ chk_type iiK iiT VStar
+  putStrLn $ show $ chk_type kkK kkT VStar
+  putStrLn $ show $ chk_type iKT  (Inf iA)  (varV "a")
+  putStrLn $ show $ chk_type kKT  (Inf kA)  (varV "a")
+  putStrLn $ show $ chk_type iiKT (Inf iiA) (varV "Nat")
+  putStrLn $ show $ chk_type kkKT (Inf kkA) (varV "Nat")
+  putStrLn $ show $ inf_type iKT  iA
+  putStrLn $ show $ inf_type kKT  kA
+  putStrLn $ show $ inf_type iiKT iiA
+  putStrLn $ show $ inf_type kkKT kkA
   putStrLn $ show $ quote $ evalC [] $ Inf iA
   putStrLn $ show $ quote $ evalC [] $ Inf kA
+  putStrLn $ show $ quote $ evalC [] $ Inf iiA
+  putStrLn $ show $ quote $ evalC [] $ Inf kkA
   putStrLn $ show $ quote $ evalC [] iC
   putStrLn $ show $ quote $ evalC [] kC
+  putStrLn $ show $ quote $ evalC [] iiC
+  putStrLn $ show $ quote $ evalC [] kkC
   putStrLn "typechecks."
