@@ -1,9 +1,6 @@
-z: OK
+ℕ⁺: OK
 1: OK
 1+: OK
-list: OK
-singleton: OK
-cons: OK
 matrix: OK
 atom: OK
 cons1: OK

@@ -1,6 +1,7 @@
 {-# LANGUAGE UnicodeSyntax #-}
-import Prelude hiding (pi)
+import Prelude hiding (putStr, putStrLn, pi)
 import Control.Monad.Error
+import System.IO.UTF8
 
 
 infixl  7 :⋅:
@@ -256,24 +257,29 @@ one  = varC "1"
 d    = varC "d"
 ls   = varC "ls"
 len  = varC "len"
-suc       x     = Inf $ varI "1+"        :⋅: x
-list      x     = Inf $ varI "list"      :⋅: x
-cons      x y z = Inf $ varI "cons"      :⋅: x :⋅: y :⋅: z
-singleton x     = Inf $ varI "singleton" :⋅: x
-matrix    x y   = Inf $ varI "matrix"    :⋅: x :⋅: y
+suc    x                  = Inf $ varI "1+"     :⋅: x
+matrix d ls               = Inf $ varI "matrix" :⋅: d :⋅: ls
+atom   x                  = Inf $ varI "atom"   :⋅: x
+cons1  len      head tail = Inf $ varI "cons1"  :⋅: len :⋅:              head :⋅: tail
+consP  len d ls head tail = Inf $ varI "consP"  :⋅: len :⋅: d :⋅: ls :⋅: head :⋅: tail
+bump   d ls x             = Inf $ varI "bump"   :⋅:         d :⋅: ls :⋅: x
+
+list d      = matrix one (singleton d)
+singleton x = atom x
+cons d x xs = cons1 d (atom x) xs
 
 main = cyclic_check
   [("ℕ⁺", star)
   ,("1" , natP)
   ,("1+", natP →→ natP)
   
-  ,("list"     , natP →→ star)
-  ,("singleton", natP
-              →→ list one)
-  ,("cons"     , pi "d" natP
-               $ natP
-              →→ list d
-              →→ list (suc d))
+  -- ,("list"     , natP →→ star)
+  -- ,("singleton", natP
+  --             →→ list one)
+  -- ,("cons"     , pi "d" natP
+  --              $ natP
+  --             →→ list d
+  --             →→ list (suc d))
   
   ,("matrix", pi "d" natP
             $ list d
