@@ -1,4 +1,5 @@
 {-# LANGUAGE UnicodeSyntax #-}
+import Prelude hiding (pi)
 import Control.Monad.Error
 
 
@@ -29,8 +30,17 @@ data TermC
 
 type Type = Value
 
+star ∷ TermC
+star = Inf Star
+
 (→→) ∷ TermC → TermC → TermC
 t1 →→ t2 = Inf $ Pi t1 (bumpC 0 t2)
+
+lam ∷ String → TermC → TermC
+lam s x = Lam $ deBruijnC 0 (Const s) x
+
+pi ∷ String → TermC → TermC → TermC
+pi s x y = Inf $ Pi x $ deBruijnC 0 (Const s) y
 
 data Value
   = VLam (Value → Value)
@@ -63,6 +73,9 @@ instance Show Neutral where
 
 vvar ∷ Name → Value
 vvar n = VNeu (NVar n)
+
+(→→→) ∷ Value → Value → Value
+x →→→ y = VPi x $ \_ → y
 
 
 -- incrementing free indices i and above
@@ -103,9 +116,6 @@ nameI n i (Ind x) | i == x    = Nam n
 nameI n i (Ind x) | otherwise = Ind x
 nameI n i (Nam x)   = Nam x
 nameI n i (x :⋅: y) = nameI n i x :⋅: nameC n i y
-
-lam ∷ String → TermC → TermC
-lam s x = Lam $ deBruijnC 0 (Const s) x
 
 varC ∷ String → TermC
 varI ∷ String → TermI
@@ -215,7 +225,7 @@ quote v = quoteV 0 v
 quoteV i (VLam f)   = Lam f' where
   i' = vvar $ Unquoted i
   f' = quoteV (i+1) $ f i'
-quoteV i VStar      = Inf Star
+quoteV i VStar      = star
 quoteV i (VPi x f)  = Inf $ Pi x' f' where
   i' = vvar $ Unquoted i
   x' = quoteV i x
