@@ -3,7 +3,7 @@ import Control.Monad.Error
 
 
 infixl  6 :⋅:
-infixr  6 :→:
+infixr  6 →→
 
 data Name
   = Const String
@@ -13,7 +13,9 @@ data Name
 
 -- inferable term
 data TermI
-  = Ann TermC Type
+  = Ann TermC TermC
+  | Star
+  | Pi TermC TermC
   | Ind Int
   | Nam Name
   | TermI :⋅: TermC
@@ -25,13 +27,15 @@ data TermC
   | Lam TermC
   deriving (Show, Eq)
 
-data Type
-  = TNam Name
-  | Type :→: Type
-  deriving (Show, Eq)
+type Type = Value
+
+(→→) ∷ TermC → TermC → TermC
+t1 →→ t2 = Inf $ Pi t1 (bumpC 0 t2)
 
 data Value
   = VLam (Value → Value)
+  | VStar
+  | VPi Value (Value → Value)
   | VNeu Neutral
 
 data Neutral
@@ -61,12 +65,27 @@ vvar ∷ Name → Value
 vvar n = VNeu (NVar n)
 
 
+-- incrementing free indices i and above
+bumpC ∷ Int → TermC → TermC
+bumpI ∷ Int → TermI → TermI
+bumpC i (Inf x)   = Inf $ bumpI i     x
+bumpC i (Lam x)   = Lam $ bumpC (i+1) x
+bumpI i (Ann x t) = Ann (bumpC i x) t
+bumpI i Star      = Star
+bumpI i (Pi x y)  = Pi (bumpC i x) (bumpC i y)
+bumpI i (Ind x) | x >= i    = Ind (x + 1)
+bumpI i (Ind x) | otherwise = Ind x
+bumpI i (Nam x)   = Nam x
+bumpI i (x :⋅: y) = bumpI i x :⋅: bumpC i y
+
 -- substituting (Ind i) for (Nam n)
 deBruijnC ∷ Int → Name → TermC → TermC
 deBruijnI ∷ Int → Name → TermI → TermI
 deBruijnC i n (Inf x)   = Inf $ deBruijnI i     n x
 deBruijnC i n (Lam x)   = Lam $ deBruijnC (i+1) n x
 deBruijnI i n (Ann x t) = Ann (deBruijnC i n x) t
+deBruijnI i n Star      = Star
+deBruijnI i n (Pi x y)  = Pi (deBruijnC i n x) (deBruijnC (i+1) n y)
 deBruijnI i n (Ind x)   = Ind x
 deBruijnI i n (Nam x) | n == x    = Ind i
 deBruijnI i n (Nam x) | otherwise = Nam x
@@ -78,6 +97,8 @@ nameI ∷ Name → Int → TermI → TermI
 nameC n i (Inf x)   = Inf $ nameI n i     x
 nameC n i (Lam x)   = Lam $ nameC n (i+1) x
 nameI n i (Ann x t) = Ann (nameC n i x) t
+nameI n i Star      = Star
+nameI n i (Pi x y)  = Pi (nameC n i x) (nameC n (i+1) y)
 nameI n i (Ind x) | i == x    = Nam n
 nameI n i (Ind x) | otherwise = Ind x
 nameI n i (Nam x)   = Nam x
@@ -88,10 +109,12 @@ lam s x = Lam $ deBruijnC 0 (Const s) x
 
 varC ∷ String → TermC
 varI ∷ String → TermI
-varT ∷ String → Type
+varV ∷ String → Value
+varN ∷ String → Neutral
 varC n = Inf $ varI n
 varI n = Nam $ Const n
-varT n = TNam $ Const n
+varV n = VNeu $ varN n
+varN n = NVar $ Const n
 
 
 evalC ∷ [Value] → TermC → Value
@@ -99,6 +122,8 @@ evalI ∷ [Value] → TermI → Value
 evalC env (Inf x)   = evalI env x
 evalC env (Lam x)   = VLam $ \v → evalC (v : env) x
 evalI env (Ann x t) = evalC env x
+evalI env Star      = VStar
+evalI env (Pi x y)  = VPi (evalC env x) $ \v → evalC (v : env) y
 evalI env (Ind x)   = env !! x
 evalI env (Nam x)   = vvar x
 evalI env (x :⋅: y) = vapp (evalI env x) (evalC env y)
@@ -107,77 +132,71 @@ vapp ∷ Value → Value → Value
 vapp (VLam f) e = f e
 vapp (VNeu f) e = VNeu (NApp f e)
 
-data Kind
-  = Star
-  deriving (Show, Eq)
-
-data Info
-  = HasKind Kind
-  | HasType Type
-  deriving (Show, Eq)
-
-type Context = [(Name, Info)]
+type Context = [(Name, Type)]
 type Result a = Either String a
 
-
-chk_kind ∷ Context → Type → Kind → Result ()
-chk_kind c (TNam x) Star = case lookup x c of
-  Just (HasKind Star) → return ()
-  Nothing             →
-    throwError $ "unknown type identifier "
-              ++ show x
-chk_kind c (x :→: y) Star = do
-  chk_kind c x Star
-  chk_kind c y Star
 
 chk_type ∷ Context → TermC → Type → Result ()
 chk_type c (Inf x) t = do
   t' ← inf_type c x
-  unless (t == t') $
+  let qt  = quote t
+  let qt' = quote t'
+  unless (qt == qt') $
     throwError $ "term "
               ++ show x
               ++ " has type "
-              ++ show t'
+              ++ show qt'
               ++ ", which doesn't match annotation "
-                               ++ show t
-chk_type c (Lam x) (t1 :→: t2) = chk_type c' x' t2 where
-  name = Bound $ length c
-  info = HasType t1
-  c' = (name, info) : c
-  x' = nameC name 0 x
-chk_type c (Lam x) (TNam t) =
+              ++ show qt
+chk_type c (Lam x) (VPi t f) = do
+  let name = Bound $ length c
+  let c'   = (name, t) : c
+  let x'   = nameC name 0 x
+  let t2'  = f $ vvar name
+  chk_type c' x' t2'
+chk_type c (Lam x) (VNeu (NVar t)) =
   throwError $ "term "
             ++ show (Lam x)
-            ++ " has an arrow type, not "
+            ++ " has an pi type, not "
             ++ show t
-chk_type c (Inf x) (t1 :→: t2) =
+chk_type c (Inf x) (VPi t1 t2) =
   throwError $ "term "
             ++ show x
             ++ " is supposed to have type "
-            ++ show (t1 :→: t2)
+            ++ show (VPi t1 t2)
             ++ " but it is not a lambda"
 
 inf_type ∷ Context → TermI → Result Type
 inf_type c (Ann x t) = do
-  chk_kind c t Star
-  chk_type c x t
-  return t
+  chk_type c t VStar
+  let v = evalC [] t
+  chk_type c x v
+  return v
+inf_type c Star      = return VStar
+inf_type c (Pi x y)  = do
+  chk_type c x VStar
+  let v    = evalC [] x
+  let name = Bound $ length c
+  let c'   = (name, v) : c
+  let y'   = nameC name 0 y
+  chk_type c' y' VStar
+  return VStar
 inf_type c (Ind x)   =
   throwError $ "index "
             ++ show x
             ++ " unexpected"
 inf_type c (Nam x)   = case lookup x c of
-  Just (HasType t) → return t
-  Nothing          →
+  Just t  → return t
+  Nothing →
     throwError $ "unknown identifier "
               ++ show x
 inf_type c (x :⋅: y) = do
   t ← inf_type c x
   case t of
-    t1 :→: t2 → do
-      chk_type c y t1
-      return t2
-    t'        →
+    VPi v f → do
+      chk_type c y v
+      return $ f $ evalC [] y
+    t'      →
       throwError $ "non-function term "
                 ++ show x
                 ++ " of type "
@@ -189,7 +208,14 @@ quote  ∷       Value → TermC
 quoteV ∷ Int → Value → TermC
 quoteN ∷ Int → Neutral → TermI
 quote v = quoteV 0 v
-quoteV i (VLam f)   = Lam $ quoteV (i+1) $ f $ vvar $ Unquoted i
+quoteV i (VLam f)   = Lam f' where
+  i' = vvar $ Unquoted i
+  f' = quoteV (i+1) $ f i'
+quoteV i VStar      = Inf Star
+quoteV i (VPi x f)  = Inf $ Pi x' f' where
+  i' = vvar $ Unquoted i
+  x' = quoteV i x
+  f' = quoteV (i+1) $ f i'
 quoteV i (VNeu x)   = Inf $ quoteN i x
 quoteN i (NVar x)   = requote i x
 quoteN i (NApp x y) = quoteN i x :⋅: quoteV i y
@@ -200,23 +226,23 @@ requote i x            = Nam x
 
 
 iC = lam "x" $ varC "x"
-iT = varT "a" :→: varT "a"
+iT = varC "a" →→ varC "a"
 iI = Ann iC iT
 iA = iI :⋅: varC "y"
-iK = [(Const "a", HasKind Star)]
+iK = [(Const "a", VStar)]
 iKT = iK
-   ++ [(Const "y", HasType $ varT "a")]
+   ++ [(Const "y", varV "a")]
 
 
 kC = lam "x" $ lam "y" $ varC "x"
-kT = varT "a" :→: varT "b" :→: varT "a"
+kT = varC "a" →→ varC "b" →→ varC "a"
 kI = Ann kC kT
 kA = kI :⋅: varC "u" :⋅: varC "v"
-kK = [(Const "a", HasKind Star)
-     ,(Const "b", HasKind Star)]
+kK = [(Const "a", VStar)
+     ,(Const "b", VStar)]
 kKT = kK
-   ++ [(Const "u", HasType $ varT "a")
-      ,(Const "v", HasType $ varT "b")]
+   ++ [(Const "u", varV "a")
+      ,(Const "v", varV "b")]
 
 
 main = do
@@ -224,10 +250,10 @@ main = do
   putStrLn $ show kC
   putStrLn $ show $ evalC [] $ Inf iA
   putStrLn $ show $ evalC [] $ Inf kA
-  putStrLn $ show $ chk_kind iK iT Star
-  putStrLn $ show $ chk_kind kK kT Star
-  putStrLn $ show $ chk_type iKT (Inf iA) (varT "a")
-  putStrLn $ show $ chk_type kKT (Inf kA) (varT "a")
+  putStrLn $ show $ chk_type iK iT VStar
+  putStrLn $ show $ chk_type kK kT VStar
+  putStrLn $ show $ chk_type iKT (Inf iA) (varV "a")
+  putStrLn $ show $ chk_type kKT (Inf kA) (varV "a")
   putStrLn $ show $ inf_type iKT iA
   putStrLn $ show $ inf_type kKT kA
   putStrLn $ show $ quote $ evalC [] $ Inf iA
