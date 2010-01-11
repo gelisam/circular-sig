@@ -240,6 +240,20 @@ requote i (Unquoted k) = Ind $ i - k - 1
 requote i x            = Nam x
 
 
+linear_check ∷ [(String, TermC)] → IO ()
+linear_check xs = check [] xs where
+  infoize s t = (Const s, evalC [] t)
+  
+  check c [] = return ()
+  check c ((s, x) : xs) = do
+    putStr s
+    putStr ": "
+    case chk_type c x VStar of
+      Left err → putStrLn err
+      Right () → do
+        putStrLn "OK"
+        check (infoize s x : c) xs
+
 cyclic_check ∷ [(String, TermC)] → IO ()
 cyclic_check xs = mapM_ check xs where
   c = map infoize xs
@@ -250,6 +264,9 @@ cyclic_check xs = mapM_ check xs where
     case chk_type c x VStar of
       Left err → putStrLn err
       Right () → putStrLn "OK"
+
+-- linearize ∷ [(String, TermC)] → [(String, TermC)]
+-- linearize 
 
 
 natP = varC "ℕ⁺"
