@@ -1,166 +1,24 @@
 \documentclass{article}
-\usepackage{multicol}
 \usepackage{relsize}
-\usepackage[paper=letterpaper,left=1in,right=1in,top=1in,bottom=1in]{geometry}
-%\usepackage[a5paper]{geometry}
+\usepackage[paper=letterpaper]{geometry}
 
+% replace with conference's preferred style.
 \setlength{\parindent}{\bigskipamount}
 \setlength{\parskip}{\medskipamount}
-\newenvironment{indented}%
-{\vspace{-2\bigskipamount}\begin{quotation}\noindent}%
-{\end{quotation}}
 
-\title{Commutative Types: A Conservative Approach to Aspect Composition}
-\author{Samuel G\'elineau}
+\title{On this Recursive Signature Stuff}
+\author{Jason C. Reed \and Samuel G\'elineau}
+
+
 \begin{document}
-\begin{center}
-{\larger[3] Commutative Types:}\\
-{\larger[2] a conservative approach to aspect composition}\\
-\vspace{\bigskipamount}
-{\larger Samuel G\'elineau}\\
-McGill University
-\end{center}
+\maketitle
 
 \begin{abstract}\em
 To be written as the last step.
 \end{abstract}
 
-\begin{multicols}{2}
-\section{Introduction}\label{intro}\vspace{-\parskip}\hspace*{\parindent}
-Aspect-Oriented Programming denotes an umbrella of techniques aiming to separate previously-unmodularizable concerns from the rest of the code. The main approach is to inject function calls, through a process called \emph{weaving} \cite{AOP}, at the various places where they need to appear.
-
-This is by no means the only possible approach, even though it is definitely the technique which attracts the most attention at the moment. As an alternative, the AHEAD model \cite{AHEAD} advocates the element-wise composition of programs, where corresponding elements are idenfied by name. Elements are then composed recursively or, for the methods at the leaves, using mixin-based inheritance \cite{mixin}. Some projects, such as CaesarJ \cite{CaesarJ}, allow the programmer to combine the weaving and element-wise approaches within the same program.
-
-The composition strategy I intend to develop steers away from the standard weaving method, to embrace and generalize AHEAD's element-wise composition strategy. At the leaves, however, inheritance is replaced with various commutative method combinators, such as \texttt{and}, \texttt{or}, \texttt{sum}, \texttt{set}, and a plethora of unexpected alternatives.
-
-\subsection{Example}\label{intro-example}\vspace{-\parskip}\hspace*{\parindent}
-Suppose we are writing a simple web application using CGI \cite{CGIbook, CGIeasy}, say, to let users add comments to a public page. There are several security concerns which could have an incidence on the application's behaviour, but because they are not directly related to the application's business logic, the proponents of aspect-orientation would exhort us to keep the code for these concerns completely separate.
-
-The concerns which I do consider to be part of the business logic are: parsing form parameters, manipulating the database, and generating HTML. The following pseudo-code illustrates one way of structuring those base concerns. Because current aspect-oriented technologies work better at the granularity of methods, the code is artificially over-subdivided into very small methods which are only called once.
-
-{\smaller
-\begin{verbatim}
-package base
-import CGI, DB, HTML
-
-global params = {}
-main() {
-  param_string = get_param_string()
-  parse_parameters(param_string)
-  dispatch(params["action"])
-}
-\end{verbatim}
-
-\begin{verbatim}
-get_param_string() {
-  url = CGI::get_current_URL()
-  if (url.contains("?")) {
-    (page, param_string) = url.split_in_two("?")
-    return param_string
-  } else {
-    return ""
-  }
-}
-\end{verbatim}
-
-\begin{verbatim}
-parse_parameters(param_string) {
-  set_default_params()
-  assignments = param_string.split_in_many("&")
-  for assignment in assignments {
-    (key, value) = assignment.split_in_two("=")
-    params[key] = value
-  }
-}
-\end{verbatim}
-
-\begin{verbatim}
-set_default_params() {
-  params["action"] = "view"
-  params["user"] = "nobody"
-}
-\end{verbatim}
-
-\begin{verbatim}
-dispatch(action) {
-  if (action == "add_form")  output_form(make_add_form())
-  if (action == "edit_form") output_form(make_edit_form())
-  if (action == "view")      view_comments()
-  if (action == "add")       add_comment()
-  if (action == "edit")      edit_comment()
-  if (action == "del")       delete_comment()
-}
-\end{verbatim}
-
-\begin{verbatim}
-make_add_form() {
-  form = HTML::make_form("New comment", "post")
-  form.add_field("Name", "")
-  form.add_textbox("Comment", "")
-  return form
-}
-\end{verbatim}
-
-\begin{verbatim}
-make_edit_form() {
-  comment = get_comment(params["comment_id"])
-  
-  form = HTML::make_form("New comment", "change")
-  form.add_hidden("comment_id", params["comment_id"])
-  form.add_pair("Name", comment["name"])
-  form.add_hidden("Name", "name", comment["name"])
-  form.add_textbox("Comment", "comment", comment["comment"])
-  return form
-}
-\end{verbatim}
-
-\begin{verbatim}
-output_form(form) {
-  doc = HTML::make_html_document(form.get_title())
-  doc.add_form(form)
-  output_doc(doc)
-}
-\end{verbatim}
-
-\begin{verbatim}
-output_doc(doc) {
-  html = doc.render()
-  CGI::serve(html)
-  exit()
-}
-\end{verbatim}
-
-\begin{verbatim}
-view_comments() {
-  doc = HTML::make_html_document("Comments")
-  comments = DB::select("COMMENTS_TABLE", {})
-  for comment in comments {
-    div = create_comment_div(comment)
-    doc.add_div(div)
-  }
-  output_doc(doc)
-}
-\end{verbatim}
-
-\begin{verbatim}
-edit_comment() {
-  DB::update("COMMENTS_TABLE", {
-    "comment_id" => params["comment_id"],
-    "comment" => params["comment"]
-  })
-}
-\end{verbatim}
-}
-
-\section{The Problem}
-
-
-% order concerns require whole program analyses, which cannot be done
-% \cite{safeAHEAD} advocates it regardless
-% CLOS Method Combinations
-% order is sufficient! (with tradeoff, types)
+Dummy citation \cite{kienzle2006challenge} to make bibtex succeed. Remove once the actual paper contains at least one citation.
 
 \bibliographystyle{unsrt}
 \bibliography{paper}
-\end{multicols}
 \end{document}
