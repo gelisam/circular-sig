@@ -10,6 +10,26 @@
 \author{Jason C. Reed \and Samuel G\'elineau}
 
 
+\newcommand{\entails}{\vdash}
+\newcommand{\kind}{~\mathop{\mathrm{kind}}}
+\newcommand{\vf}{~\mathop{\mathrm{valid}}_1}
+\newcommand{\vt}{~\mathop{\mathrm{valid}}_2}
+\newcommand{\valid}{~\mathop{\mathrm{valid}}}
+\newcommand{\wf}{~\mathop{\mathrm{well\mbox{-}formed}}}
+\newcommand{\wt}{~\mathop{\mathrm{well\mbox{-}typed}}}
+\newcommand{\type}{\mathop{\mathbf{type}}}
+
+\long\def\fig#1#2#3{
+\begin{figure}[t]
+\setlength{\parskip}{\medskipamount}
+#3%
+\caption{#2}
+\label{#1}
+\hrule\hrule
+\end{figure}
+}
+
+
 \begin{document}
 \maketitle
 
@@ -26,28 +46,86 @@ In section \ref{Example}, we give an example illustrating what is a recursive si
 A multidimensional matrix is indexed by a list of sizes, one for each dimention. If we choose to encode this list using a unidimentional array, we end up in a situation where multidimensional matrices are indexed by multidimensional matrices. This is recursion we are talking about.
 
 \section{Calculus}\label{Calculus}
-The ordinary LF calculus is as follows, I assume?
+Allowing circular signatures does not involve adding new syntax to LF, but rather, it is necessary to interpret the existing syntax slightly differently. For this reason, we first review the typing rules for ordinary LF, and then point out the portions we need to change.
 
-\newcommand{\entails}{\vdash}
-\newcommand{\kind}{~\mathop{\mathrm{kind}}}
-\newcommand{\type}{\mathop{\mathbf{type}}}
+\fig{LF-kinding}{Kinding rules for LF}{
 \hspace*{\fill}
 $\infer{\Gamma \entails \type \kind}{}$
 \hspace*{\fill}
-$\infer{\Gamma \entails \{x:A\}~K \kind}{\Gamma \entails A : \type & \Gamma,~x:A \entails K \kind}$
+$\infer{\Gamma \entails \{x:A\}~K \kind}{\Gamma \entails A : \type & x \not\in \Gamma & \Gamma,~x:A \entails K \kind}$
 \hspace*{\fill}
+}
 
+\fig{LF-typing}{Typing rules for LF}{
+\setlength{\parskip}{\medskipamount}
 \hspace*{\fill}
 $\infer{\Gamma \entails x : \Gamma(x)}{}$
 \hspace*{\fill}
-$\infer{\Gamma \entails \{x:A\}~B : \type}{\Gamma \entails A : \type & \Gamma,~x:A \entails B : \type}$
+$\infer{\Gamma \entails \{x:A\}~B : \type}{\Gamma \entails A : \type & x \not\in \Gamma & \Gamma,~x:A \entails B : \type}$
 \hspace*{\fill}
 
 \hspace*{\fill}
 $\infer{\Gamma \entails F~E : B[E/x]}{\Gamma \entails F : \{x:A\}~B & \Gamma \entails E : A}$
 \hspace*{\fill}
-$\infer{\Gamma \entails [x:A]~E : \{x:A\}~B}{\Gamma \entails A : \type & \Gamma,~x:A \entails E : B}$
+$\infer{\Gamma \entails [x:A]~E : \{x:A\}~B}{\Gamma \entails A : \type & x \not\in \Gamma & \Gamma,~x:A \entails E : B}$
 \hspace*{\fill}
+}
+
+\fig{LF-sig}{Signature validity rules for LF}{
+\hspace*{\fill}
+$\infer{\cdot \valid}{}$
+\hspace*{\fill}
+$\infer{\Gamma,~x:K \valid}{\Gamma \valid & x \not\in \Gamma & \Gamma \entails K \kind}$
+\hspace*{\fill}
+$\infer{\Gamma,~x:T \valid}{\Gamma \valid & x \not\in \Gamma & \Gamma \entails T : \type}$
+\hspace*{\fill}
+}
+
+\subsection{LF Review}
+In figure \ref{LF-sig}, we see that LF signatures (a.k.a. contexts) are built incrementally, one fresh variable at a time. Those variables can either introduce new dependent types, whose kinds end with $\type$, or new constructors for dependent types that have been introduced earlier.
+
+The rules for checking kinds and types (figures \ref{LF-kinding} and \ref{LF-typing}), in turn, use the signature which has been built so far to make a few sanity checks. These sanity checks involve both ensuring that the left and right hand sides of all function types are themselves types, and ensuring that abstractions and applications type check. Note that since LF has dependent types, function types look like $\{x:A\}~B$ instead of the more traditional $A \rightarrow B$.
+
+In both types of sanity checks, signatures need to be extended in order to check the expressions occuring under binders. Whenever this is done, a bit of the work of figure \ref{LF-sig} is repeated in order to make sure that the extended signature remains valid.
+
+\fig{sig-valid}{Two phases validity for circular LF}{
+\hspace*{\fill}
+$\infer{\Delta \entails \cdot \vt}{}$
+\hspace*{\fill}
+$\infer{\Delta \entails \Gamma,~x:K \vt}{\Delta \entails \Gamma \vt & x \not\in \Gamma & \Gamma \entails K \kind}$
+\hspace*{\fill}
+$\infer{\Delta \entails \Gamma,~x:T \vt}{\Delta \entails \Gamma \vt & x \not\in \Gamma & \Gamma \entails T : \type}$
+\hspace*{\fill}
+
+\hspace*{\fill}
+$\infer{\cdot \vf}{}$
+\hspace*{\fill}
+$\infer{\Gamma,~x:A \vf}{\Gamma \vf & x \not\in \Gamma & A \wf}$
+\hspace*{\fill}
+$\infer{\Gamma \valid}{\Gamma \vf & \Gamma \entails \Gamma \vt}$
+\hspace*{\fill}
+
+\vspace{\bigskipamount}
+
+\hspace*{\fill}
+$\infer{\type \wf}{}$
+\hspace*{\fill}
+$\infer{\{x:A\}~B \wf}{A \wf & B \wf}$
+\hspace*{\fill}
+
+\hspace*{\fill}
+$\infer{F~X \wf}{F \wf & X \wf}$
+\hspace*{\fill}
+$\infer{[x:A]~B \wf}{A \wf & B \wf}$
+\hspace*{\fill}
+}
+
+\subsection{Circular LF}
+If we now try to extend LF to support recursive signatures, our first obstacle is that we cannot simply build the context incrementally anymore. The reason for this is simply that recursive signatures contain forward references, which an incrementally built context would not contain.
+
+Looking at the rules more closely, we see that the problem occurs in the sanity checks, when they use the context to loop up the type of a forward reference. For this reason, the solution to the problem is to postpone the sanity checks until after the context is built. This turns the signatures validation process into a two phase procedure: first, build the context, and second, perform the sanity checks.
+
+Stripped of its sanity checks, the first phase is reduced to checking that the context is syntactically well-formed. Next, the well-formed context is given to the type checker, which type checks each of the declarations using the well-formed context. As figure \ref{sig-valid} shows, the signature is only deemed valid once it has been validated by both phases.
 
 \section{Semantics}\label{Semantics}
 Using the same translation as the one used to give semantics to refinement types, we obtain families of signatures which only ever refer to earlier families. This breaks the circularity, and therefore succeeds at explaining our recursive signatures using a language lacking them.
