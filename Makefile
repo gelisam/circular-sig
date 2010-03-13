@@ -1,14 +1,16 @@
-all: paper.pdf
+NAME=paper
+
+all: $(NAME).pdf
 .PHONY: all clean clobber
 
-%.pdf: %.tex paper.bib
+%.pdf: %.tex $(NAME).bib
 	pdflatex -interaction=nonstopmode $<
-	bibtex paper
+	bibtex $(NAME)
 	pdflatex -interaction=nonstopmode $<
 	pdflatex -interaction=nonstopmode $<
 
 clean:
-	rm -rf paper.aux paper.log paper.bbl paper.blg
+	rm -rf $(NAME).aux $(NAME).log $(NAME).bbl $(NAME).blg
 
 clobber: clean
-	rm -rf paper.pdf
+	rm -rf $(NAME).pdf
