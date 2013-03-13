@@ -27,7 +27,7 @@ A simple variant is the type Vector+ of non-empty Vectors:
     cons :: A -> vector A N -> vector A (succ N)
 
 
-At CADE 2009, [Jason C. Reed](http://jcreed.livejournal.com/) and I discussed datatypes indexed by values of this same datatype. This is a very unusual form of recursion.
+At [CADE 2009](http://complogic.cs.mcgill.ca/cade22/), [Jason C. Reed](http://jcreed.livejournal.com/) and I discussed datatypes indexed by values of this same datatype. This is a very unusual form of recursion.
 
 One example where this would be useful is the Matrix datatype. Just like we indexed the Vector type with its length, we would like to index Matrix with the sizes of its various dimentions. For a D-dimensional matrix, this list of size could easily be represented using a Vector of length D. But if we define a List to be a one-dimensional Matrix, we have a circular dependency!
 
