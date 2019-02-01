@@ -1,7 +1,8 @@
+#!/usr/bin/env stack
+-- stack --resolver lts-12.5 script
 {-# LANGUAGE UnicodeSyntax #-}
-import Prelude hiding (putStr, putStrLn, pi, exp, max)
-import Control.Monad.Error
-import System.IO.UTF8
+import Prelude hiding (pi, exp, max)
+import Control.Monad.Except
 
 
 infixl  7 :⋅:
